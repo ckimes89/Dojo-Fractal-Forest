@@ -47,15 +47,17 @@ let drawBezier (target : Graphics) (brush : Brush)
              (x : float) (y : float) 
              (angle : float) (angleDiff : float) (length : float) (width : float) =
     let x_end, y_end = endpoint x y (angle + angleDiff) length
-    let x_ctl, y_ctl = endpoint x y (angle) (length*0.7)
+    let x_ctl1, y_ctl1 = endpoint x y (angle) (length*0.8)
+    let x_ctl2, y_ctl2 = endpoint x_end y_end (angle) (length*(-0.3))
     let origin = new PointF((single)x, (single)(y |> flip))
     let destination = new PointF((single)x_end, (single)(y_end |> flip))
-    let ctl = new PointF((single)x_ctl, (single)(y_end |> flip))
+    let ctl1 = new PointF((single)x_ctl1, (single)(y_ctl1 |> flip))
+    let ctl2 = new PointF((single)x_ctl2, (single)(y_ctl2 |> flip))
     let pen = new Pen(brush, (single)width)
-    target.DrawBezier(pen, origin, ctl, ctl, destination)
+    target.DrawBezier(pen, origin, ctl1, ctl2, destination)
 
-let drawB x y angle angleDiff width brush =
-    drawBezier graphics brush x y angle 
+let drawB x y angle angleDiff length width brush =
+    drawBezier graphics brush x y angle angleDiff length width
 
 let pi = Math.PI
 
@@ -76,28 +78,27 @@ let perturb x =
     x * (rand.NextDouble() * 0.2 + 0.9)
 
 
-let rec tree depth x y angle len width =
+let rec tree depth x y angle angleDiff len width =
    if depth > 0 then
        let angle = perturb angle
        let len = perturb len
        let startColor = colors.[(depth / 2 + 7) % 7]
        let endColor = colors.[((depth-1)/2 + 7) % 7]
-       let x2,y2 = endpoint x y angle len
+       let x2,y2 = endpoint x y (angle+angleDiff) len
        let brush = new LinearGradientBrush(new Point(int x, int y), new Point(int x2, int y2), endColor, startColor)
-        
-       draw x y angle len width brush
+       drawB x y angle angleDiff len width brush
        if rand.NextDouble() > 0.5 then 
-           tree (depth-1) x2 y2 (angle-0.2) (len*0.75) (width*0.9)
-           tree (depth-1) x2 y2 (angle+0.4) (len*0.75) (width*0.9)
+           tree (depth-1) x2 y2 (angle+angleDiff) -0.2 (len*0.75) (width*0.9)
+           tree (depth-1) x2 y2 (angle+angleDiff) +0.4 (len*0.75) (width*0.9)
        else
-           tree (depth-1) x2 y2 (angle+0.4) (len*0.75) (width*0.9)
-           tree (depth-1) x2 y2 (angle-0.2) (len*0.75) (width*0.9)
+           tree (depth-1) x2 y2 (angle+angleDiff) +0.4 (len*0.75) (width*0.9)
+           tree (depth-1) x2 y2 (angle+angleDiff) -0.2 (len*0.75) (width*0.9)
        //tree (depth-2) x2 y2 angle (perturb (len/2.0)) width
 
 
 
 
-tree 15 500. 0. (pi/2.0) 150. 10.
+tree 15 500. 0. (pi/2.0) 0. 150. 6.
 
 form.ShowDialog()
 
